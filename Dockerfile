@@ -8,16 +8,19 @@ WORKDIR /opt/biophi
 COPY environment.yml .
 COPY Makefile .
 
-RUN make env-update ENV_NAME=base
+# Create a new environment instead of updating base
+RUN conda env create -n biophi -f environment.yml
 
 COPY . .
 
-RUN make env-setup ENV_NAME=base
+# Install the package in the new environment
+RUN conda run -n biophi pip install -e . --no-deps
 
 RUN useradd docker \
   && mkdir /home/docker \
   && chown docker:docker /home/docker \
-  && addgroup docker staff
+  && usermod -a -G staff docker
 USER docker
 
-CMD [ "biophi", "web", "--host", "0.0.0.0" ]
+# Use the new environment for the command
+CMD [ "conda", "run", "-n", "biophi", "biophi", "web", "--host", "0.0.0.0" ]
